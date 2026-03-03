@@ -7,7 +7,6 @@ import (
 	"time"
 
 	. "github.com/infrago/base"
-	"github.com/infrago/infra"
 	"github.com/infrago/token"
 	"github.com/tidwall/buntdb"
 )
@@ -48,7 +47,7 @@ func (d *memoryDriver) Close() error {
 	return err
 }
 
-func (d *memoryDriver) SavePayload(_ *infra.Meta, tokenID string, payload Map, exp int64) error {
+func (d *memoryDriver) SavePayload(tokenID string, payload Map, exp int64) error {
 	tokenID = strings.TrimSpace(tokenID)
 	if tokenID == "" {
 		return nil
@@ -67,7 +66,7 @@ func (d *memoryDriver) SavePayload(_ *infra.Meta, tokenID string, payload Map, e
 	})
 }
 
-func (d *memoryDriver) LoadPayload(_ *infra.Meta, tokenID string) (Map, bool, error) {
+func (d *memoryDriver) LoadPayload(tokenID string) (Map, bool, error) {
 	tokenID = strings.TrimSpace(tokenID)
 	if tokenID == "" {
 		return nil, false, nil
@@ -98,7 +97,7 @@ func (d *memoryDriver) LoadPayload(_ *infra.Meta, tokenID string) (Map, bool, er
 	return out, true, nil
 }
 
-func (d *memoryDriver) DeletePayload(_ *infra.Meta, tokenID string) error {
+func (d *memoryDriver) DeletePayload(tokenID string) error {
 	tokenID = strings.TrimSpace(tokenID)
 	if tokenID == "" {
 		return nil
@@ -116,7 +115,7 @@ func (d *memoryDriver) DeletePayload(_ *infra.Meta, tokenID string) error {
 	})
 }
 
-func (d *memoryDriver) RevokeToken(_ *infra.Meta, token string, exp int64) error {
+func (d *memoryDriver) RevokeToken(token string, exp int64) error {
 	token = strings.TrimSpace(token)
 	if token == "" {
 		return nil
@@ -131,7 +130,7 @@ func (d *memoryDriver) RevokeToken(_ *infra.Meta, token string, exp int64) error
 	})
 }
 
-func (d *memoryDriver) RevokeTokenID(_ *infra.Meta, tokenID string, exp int64) error {
+func (d *memoryDriver) RevokeTokenID(tokenID string, exp int64) error {
 	tokenID = strings.TrimSpace(tokenID)
 	if tokenID == "" {
 		return nil
@@ -146,7 +145,7 @@ func (d *memoryDriver) RevokeTokenID(_ *infra.Meta, tokenID string, exp int64) e
 	})
 }
 
-func (d *memoryDriver) RevokedToken(_ *infra.Meta, token string) (bool, error) {
+func (d *memoryDriver) RevokedToken(token string) (bool, error) {
 	token = strings.TrimSpace(token)
 	if token == "" {
 		return false, nil
@@ -165,7 +164,7 @@ func (d *memoryDriver) RevokedToken(_ *infra.Meta, token string) (bool, error) {
 	return err == nil, err
 }
 
-func (d *memoryDriver) RevokedTokenID(_ *infra.Meta, tokenID string) (bool, error) {
+func (d *memoryDriver) RevokedTokenID(tokenID string) (bool, error) {
 	tokenID = strings.TrimSpace(tokenID)
 	if tokenID == "" {
 		return false, nil
