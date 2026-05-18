@@ -28,4 +28,7 @@ import _ "github.com/infrago/token-memory"
 [token]
 driver = "memory"
 payload = "token" # token | store | hybrid
+
+[token.setting]
+store_codec = "json"
 ```

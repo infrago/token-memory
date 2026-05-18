@@ -1,26 +1,31 @@
 package tokenmemory
 
 import (
-	"encoding/json"
 	"strings"
 	"sync"
-	"time"
 
 	. "github.com/infrago/base"
 	"github.com/infrago/token"
+	"github.com/infrago/token/expire"
+	"github.com/infrago/token/payloadcodec"
 	"github.com/tidwall/buntdb"
 )
 
 type memoryDriver struct {
 	mutex sync.Mutex
 	db    *buntdb.DB
+	codec string
 }
 
 func init() {
 	token.RegisterDriver("memory", &memoryDriver{})
 }
 
-func (d *memoryDriver) Configure(Map) {}
+func (d *memoryDriver) Configure(setting Map) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.codec = payloadcodec.FromSetting(setting)
+}
 
 func (d *memoryDriver) Open() error {
 	d.mutex.Lock()
@@ -52,11 +57,14 @@ func (d *memoryDriver) SavePayload(tokenID string, payload Map, exp int64) error
 	if tokenID == "" {
 		return nil
 	}
+	if expire.ExpiredUnix(exp) {
+		return nil
+	}
 	db, err := d.ensureDB()
 	if err != nil {
 		return err
 	}
-	bts, err := json.Marshal(payload)
+	bts, err := payloadcodec.Marshal(d.payloadCodec(), payload)
 	if err != nil {
 		return err
 	}
@@ -91,7 +99,7 @@ func (d *memoryDriver) LoadPayload(tokenID string) (Map, bool, error) {
 		return nil, false, err
 	}
 	out := Map{}
-	if err := json.Unmarshal([]byte(raw), &out); err != nil {
+	if err := payloadcodec.Unmarshal(d.payloadCodec(), []byte(raw), &out); err != nil {
 		return nil, false, err
 	}
 	return out, true, nil
@@ -120,6 +128,9 @@ func (d *memoryDriver) RevokeToken(token string, exp int64) error {
 	if token == "" {
 		return nil
 	}
+	if expire.ExpiredUnix(exp) {
+		return nil
+	}
 	db, err := d.ensureDB()
 	if err != nil {
 		return err
@@ -133,6 +144,9 @@ func (d *memoryDriver) RevokeToken(token string, exp int64) error {
 func (d *memoryDriver) RevokeTokenID(tokenID string, exp int64) error {
 	tokenID = strings.TrimSpace(tokenID)
 	if tokenID == "" {
+		return nil
+	}
+	if expire.ExpiredUnix(exp) {
 		return nil
 	}
 	db, err := d.ensureDB()
@@ -201,11 +215,13 @@ func (d *memoryDriver) setOptions(exp int64) *buntdb.SetOptions {
 	if exp <= 0 {
 		return nil
 	}
-	ttl := time.Until(time.Unix(exp, 0))
-	if ttl <= 0 {
-		ttl = time.Second
-	}
-	return &buntdb.SetOptions{Expires: true, TTL: ttl}
+	return &buntdb.SetOptions{Expires: true, TTL: expire.DurationUntilUnix(exp)}
+}
+
+func (d *memoryDriver) payloadCodec() string {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	return payloadcodec.Normalize(d.codec)
 }
 
 func (d *memoryDriver) keyPayload(tokenID string) string {
